@@ -7,7 +7,7 @@ var sqs = new AWS.SQS({ region: process.env.REGION });
 const QUEUE_URL = process.env.PENDING_ORDERS_QUEUE;
 const orderMetadataManager = require('./orderMetadataManager');
 
-module.exports.hacerPedido = (event, context, callback) => {
+module.exports.hacerPedido = async (event, context, callback) => {
 	console.log('HacerPedido fue llamada');
 	const payload = JSON.parse(event.body);
 	const orderData = {
@@ -50,6 +50,26 @@ module.exports.prepararPedido = async (event, context, callback) => {
 			});
 	});
 };
+
+module.exports.eviarPedido = async (event, context, callback) => {
+	console.log(event);
+	const record = event.Records[0];
+	if (record.eventName === 'INSERT') {
+		console.log('Enviando pedido');
+		const orderId = record.dynamodb.Keys.orderId.S;
+		orderMetadataManager.deliverOrder(orderId)
+			.then(data => {
+				console.log(data);
+				callback();
+			})
+			.catch(err => {
+				callback(err);
+			});
+	} else {
+		console.log('No es un nuevo pedido');
+		callback();
+	}
+}
 
 function sendResponse(statusCode, message, callback) {
 	const response = {

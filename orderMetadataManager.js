@@ -19,3 +19,24 @@ module.exports.saveCompletedOrder = (orderData) => {
     };
     return dynamo.put(dynamoConfigParams).promise();
 };
+
+module.exports.deliverOrder = (orderId) => {
+    console.log('Entregar pedido fue llamado');
+    const dynamoConfigParams = {
+        TableName: process.env.COMPLETED_ORDER_TABLE,
+        Key: {
+            orderId
+        },
+        ConditionExpression: 'attribute_exists(orderId)',
+        UpdateExpression: 'set delivery_status = :new_status',
+        ExpressionAttributeValues: {
+            ':new_status': 'DELIVERED'
+        },
+        ReturnValues: 'ALL_NEW'
+    };
+    return dynamo.update(dynamoConfigParams).promise()
+        .then(response => {
+            console.log('Orden entregada');
+            return response.Attributes;
+        });
+}
