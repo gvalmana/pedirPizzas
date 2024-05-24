@@ -7,7 +7,7 @@ var sqs = new AWS.SQS({ region: process.env.REGION });
 const QUEUE_URL = process.env.PENDING_ORDERS_QUEUE;
 const orderMetadataManager = require('./orderMetadataManager');
 
-module.exports.hacerPedido = async (event, context, callback) => {
+module.exports.hacerPedido = (event, context, callback) => {
 	console.log('HacerPedido fue llamada');
 	const payload = JSON.parse(event.body);
 	const orderData = {
@@ -17,7 +17,6 @@ module.exports.hacerPedido = async (event, context, callback) => {
 		"pizzas": payload.pizzas,
 		"timestamp": new Date().getTime().toString()
 	};
-
 	const params = {
 		MessageBody: JSON.stringify(orderData),
 		QueueUrl: QUEUE_URL
@@ -25,51 +24,56 @@ module.exports.hacerPedido = async (event, context, callback) => {
 
 	sqs.sendMessage(params, function(err, data) {
 		if (err) {
-			sendResponse(500, err, callback);
+			console.log('error:', 'Fail Send Message' + err);
+			sendResponse(500, 'Error al enviar el mensaje', callback);
 		} else {
 			const message = {
 				order: orderData,
 				messageId: data.MessageId
 			};
+			console.log('message:', message);
 			sendResponse(200, message, callback);
 		}
 	});
 };
 
-module.exports.prepararPedido = async (event, context, callback) => {
+module.exports.prepararPedido = (event, context, callback) => {
 	console.log('Preparar pedido fue llamada');
-	const ordersRecords = event.Records;
-	ordersRecords.forEach(recordItem => {
-		const orderData = JSON.parse(recordItem.body);
-		orderMetadataManager.saveCompletedOrder(orderData)
-			.then(data => {
-				callback();
-			})
-			.catch(err => {
-				callback(err);
-			});
-	});
+	const order = event.Records[0].body;
+	const orderData = JSON.parse(order);
+	orderMetadataManager
+		.saveCompletedOrder(orderData)
+		.then(data => {
+			callback();
+		})
+		.catch(error => {
+			callback(error);
+		});
 };
 
-module.exports.eviarPedido = async (event, context, callback) => {
-	console.log(event);
+module.exports.enviarPedido = (event, context, callback) => {
+	console.log('EnviarPedido fue llamada');
+
 	const record = event.Records[0];
 	if (record.eventName === 'INSERT') {
-		console.log('Enviando pedido');
+		console.log('deliverOrder');
+
 		const orderId = record.dynamodb.Keys.orderId.S;
-		orderMetadataManager.deliverOrder(orderId)
+		console.log(record);
+		orderMetadataManager
+			.deliverOrder(orderId)
 			.then(data => {
 				console.log(data);
 				callback();
 			})
-			.catch(err => {
-				callback(err);
+			.catch(error => {
+				callback(error);
 			});
 	} else {
-		console.log('No es un nuevo pedido');
+		console.log('is not a new record');
 		callback();
 	}
-}
+};
 
 function sendResponse(statusCode, message, callback) {
 	const response = {

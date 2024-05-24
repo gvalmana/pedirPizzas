@@ -43,7 +43,7 @@ functions:
               - PendingOrdersQueue
               - Arn
           batchSize: 1
-  eviarPedido:
+  enviarPedido:
     handler: handler.enviarPedido
     events:
       - stream:
