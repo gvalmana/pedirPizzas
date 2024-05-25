@@ -75,6 +75,21 @@ module.exports.enviarPedido = (event, context, callback) => {
 	}
 };
 
+module.exports.obtenerDetallePedido = (event, context, callback) => {
+	console.log('ObtenerDetallePedido fue llamada');
+	const orderId = event.pathParameters.orderId;
+	orderMetadataManager
+		.getCompletedOrder(orderId)
+		.then(data => {
+			console.log(data);
+			sendResponse(200, data, callback);
+		})
+		.catch(error => {
+			console.log(error);
+			sendResponse(500, error, callback);
+		});
+}
+
 function sendResponse(statusCode, message, callback) {
 	const response = {
 		statusCode: statusCode,

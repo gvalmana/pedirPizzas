@@ -40,3 +40,17 @@ module.exports.deliverOrder = (orderId) => {
             return response.Attributes;
         });
 }
+
+module.exports.getCompletedOrder = (orderId) => {
+    console.log('Obtener pedido completado fue llamado');
+    const dynamoConfigParams = {
+        TableName: process.env.COMPLETED_ORDER_TABLE,
+        Key: {
+            orderId
+        }
+    };
+    return dynamo.get(dynamoConfigParams).promise()
+        .then(response => {
+            return response.Item;
+        });
+}

@@ -54,7 +54,13 @@ functions:
             Fn::GetAtt:
               - CompletedOrdersTable
               - StreamArn
-    
+  obtenerDetallePedido:
+    handler: handler.obtenerDetallePedido
+    events:
+      - http:
+          method: get
+          path: pedido/{orderId}
+
 resources:
   Resources:
     PendingOrdersQueue:
